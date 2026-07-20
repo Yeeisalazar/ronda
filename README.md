@@ -49,30 +49,6 @@ En resumen: apto para prueba personal; no apto para uso con datos reales de paci
 
 ---
 
-## Ejecución
-
-### Opción rápida (solo local, sin IA)
-
-Abre `index.html` en cualquier navegador moderno. Funciona sin conexión: registro por voz/texto, alertas de signos vitales, notas estructuradas y exportación.
-
-### Con funciones de IA (lectura de foto y mejora de notas), en Vercel
-
-1. Estructura del proyecto:
-   ```
-   ronda/
-   ├── index.html
-   └── api/
-       └── claude.js
-   ```
-2. En Vercel, define la variable de entorno `ANTHROPIC_API_KEY`.
-3. Deploy.
-
-La app detecta automáticamente su entorno: dentro de un contexto con acceso directo usa la API directa; desplegada en Vercel usa el proxy `/api/claude`, de modo que **la API key nunca queda expuesta en el frontend**.
-
-> ⚠️ **Nunca** incluyas tu API key en el código ni la subas al repositorio. Ver `.gitignore`.
-
----
-
 ## Estado del proyecto
 
 Prototipo funcional en fase de prueba en terreno. Próximos pasos considerados: incorporación de pautas de evaluación estructuradas por tipo de visita, y análisis del marco de cumplimiento para un eventual uso institucional.
