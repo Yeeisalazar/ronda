@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Ronda — asistente de visitas</title>
+<style>
+  :root{
+    --bg: #F5F7F6;
+    --surface: #FFFFFF;
+    --primary: #1F6F6B;
+    --primary-dark: #14504D;
+    --primary-tint: #E6F0EF;
+    --accent: #D9724A;
+    --accent-tint: #FBEAE1;
+    --text: #1C2624;
+    --muted: #6E807D;
+    --border: #E1E8E6;
+    --danger: #C24A3B;
+    --radius: 14px;
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+    padding-bottom: 40px;
+  }
+  #app{ max-width: 560px; margin: 0 auto; padding: 16px 16px 8px; }
+
+  #print-sheet{ display:none; }
+  @media print{
+    body{ background:#fff; padding:0; }
+    #app{ display:none !important; }
+    #print-sheet{
+      display:block !important;
+      white-space: pre-wrap;
+      font-family: Georgia, serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+      padding: 24px;
+    }
+  }
+
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 6px 2px 18px;
+  }
+  header.top .brand{ display:flex; align-items:center; gap:10px; }
+  header.top .dot{
+    width:11px; height:11px; border-radius:50%; background: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-tint);
+  }
+  header.top h1{
+    font-family: var(--font-display); font-size: 22px; margin:0; color: var(--primary-dark);
+    letter-spacing: 0.2px;
+  }
+  header.top .sub{ font-size: 12px; color: var(--muted); margin-top: -2px; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:none; border-radius: 12px; padding: 14px 18px; font-size:15px; font-weight:600;
+    cursor:pointer; font-family: var(--font-body); transition: transform .08s ease, opacity .15s ease;
+    -webkit-user-select:none; user-select:none;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{ background: var(--primary); color:#fff; }
+  .btn-primary:disabled{ opacity:0.5; }
+  .btn-ghost{ background: var(--surface); color: var(--primary-dark); border:1px solid var(--border); }
+  .btn-accent{ background: var(--accent); color:#fff; }
+  .btn-block{ width:100%; }
+  .btn-sm{ padding: 9px 12px; font-size: 13px; border-radius: 10px; }
+
+  .back-row{ display:flex; align-items:center; gap:10px; margin-bottom: 14px; }
+  .back-link{ color: var(--primary-dark); font-weight:600; font-size:14px; cursor:pointer; }
+
+  .card{
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px;
+  }
+  .patient-row{
+    display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    padding: 14px 16px; background: var(--surface); border:1px solid var(--border);
+    border-radius: var(--radius); margin-bottom:10px; cursor:pointer;
+  }
+  .patient-row:active{ background: var(--primary-tint); }
+  .patient-name{ font-family: var(--font-display); font-size: 17px; color: var(--text); }
+  .patient-meta{ font-size: 12px; color: var(--muted); margin-top:3px; }
+  .badge{
+    font-size:11px; font-weight:700; padding: 3px 9px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent); white-space:nowrap;
+  }
+  .badge-ok{ background: var(--primary-tint); color: var(--primary-dark); }
+
+  .empty{ text-align:center; padding: 40px 16px; color: var(--muted); }
+  .empty .big{ font-size: 30px; margin-bottom: 6px; }
+
+  label{ display:block; font-size:12px; font-weight:700; color: var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:5px; }
+  input[type=text], input[type=number], textarea{
+    width:100%; padding: 12px 13px; border:1px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: var(--font-body); background: #fff; color: var(--text);
+  }
+  input:focus, textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; }
+  .field{ margin-bottom: 14px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  textarea{ resize: vertical; min-height: 90px; line-height:1.5; }
+
+  .section-title{ font-family: var(--font-display); font-size: 16px; color: var(--primary-dark); margin: 4px 0 10px; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 4px; }
+  .chip{
+    padding: 10px 14px; border-radius: 999px; border:1px solid var(--border); background:#fff;
+    font-size: 13.5px; font-weight:600; color: var(--text); cursor:pointer;
+  }
+  .chip.on{ background: var(--primary); border-color: var(--primary); color:#fff; }
+  .chip.accent-on{ background: var(--accent); border-color: var(--accent); color:#fff; }
+
+  .sub-block{
+    margin-top: 12px; padding: 12px; background: var(--accent-tint); border-radius: 10px;
+    border: 1px solid #F0D3C4;
+  }
+  .sub-block .sub-title{ font-size:12px; font-weight:700; color: var(--accent); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; }
+
+  .vitals-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+  .vitals-grid .full{ grid-column: 1 / -1; }
+  .pa-row{ display:flex; align-items:center; gap:6px; }
+  .pa-row span{ color: var(--muted); font-weight:700; }
+
+  .mic-wrap{ display:flex; flex-direction:column; align-items:center; padding: 22px 10px 10px; }
+  .mic-btn{
+    width:76px; height:76px; border-radius:50%; border:none; background: var(--primary); color:#fff;
+    font-size: 28px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow: 0 0 0 6px var(--primary-tint); position:relative;
+  }
+  .mic-btn.recording{ background: var(--danger); box-shadow: 0 0 0 6px var(--accent-tint); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 6px var(--accent-tint); }
+    50%{ box-shadow: 0 0 0 14px var(--accent-tint); }
+    100%{ box-shadow: 0 0 0 6px var(--accent-tint); }
+  }
+  .mic-label{ margin-top:10px; font-size:13px; color: var(--muted); font-weight:600; }
+  .transcript-box{
+    margin-top:14px; width:100%; min-height:60px; background: var(--primary-tint);
+    border-radius: 10px; padding: 12px 14px; font-size:14.5px; color: var(--text); line-height:1.5;
+  }
+  .transcript-box.placeholder{ color: var(--muted); font-style: italic; }
+
+  .task-item{ display:flex; align-items:center; gap:10px; padding: 10px 2px; border-bottom:1px solid var(--border); }
+  .task-item:last-child{ border-bottom:none; }
+  .task-item input[type=checkbox]{ width:20px; height:20px; accent-color: var(--primary); flex-shrink:0; }
+  .task-item.done span{ text-decoration: line-through; color: var(--muted); }
+  .add-task-row{ display:flex; gap:8px; margin-top:10px; }
+  .add-task-row input{ flex:1; }
+
+  .visit-log{ border-left: 2px solid var(--border); padding-left: 14px; margin-left: 4px; }
+  .visit-log .entry{ margin-bottom: 16px; }
+  .visit-log .entry .date{ font-size:12px; font-weight:700; color: var(--primary-dark); }
+  .visit-log .entry .note{ font-size: 14px; white-space: pre-wrap; margin-top:4px; line-height:1.5; }
+
+  .loading-dots::after{ content:'...'; }
+  .error-box{ background: var(--accent-tint); color: var(--danger); border-radius:10px; padding:12px 14px; font-size:13.5px; margin-top:10px; }
+  .row-gap{ display:flex; gap:10px; }
+  .row-gap .btn{ flex:1; }
+  .muted{ color: var(--muted); font-size: 13px; }
+
+  .alert-item{ display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border-radius:10px; font-size:13.5px; font-weight:600; margin-top:8px; line-height:1.4; }
+  .alert-high{ background:#FBE4E0; color:#B23A2A; border:1px solid #F0C4BC; }
+  .alert-mid{ background:#FBF0DC; color:#8A5D10; border:1px solid #F0E0BC; }
+  .alert-icon{ flex-shrink:0; }
+
+  .sac-box{
+    background: var(--primary-tint); border-radius: 10px; padding: 14px 16px; font-size: 13.5px;
+    white-space: pre-wrap; line-height: 1.55; color: var(--text); max-height: 420px; overflow-y:auto;
+  }
+
+  .photo-item{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .photo-item .row1{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .photo-item input[type=checkbox]{ width:20px;height:20px; accent-color: var(--primary); flex-shrink:0; }
+  .photo-item input[type=text]{ flex:1; }
+  .photo-item .extra-row{ display:flex; gap:8px; margin-top:8px; }
+  .photo-item .extra-row input{ flex:1; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="print-sheet"></div>
+
+<script>
+// ---------- State ----------
+let patients = [];
+let view = 'home'; // home | addPatient | editPatient | patientDetail | visit | visitSummary | photoImport
+let currentPatientId = null;
+let visitDraft = null;
+let lastSavedVisit = null;
+let loadingInit = true;
+
+let recognition = null;
+let recognizing = false;
+let finalTranscript = '';
+
+let photoStage = 'capture'; // capture | processing | review | error
+let photoError = '';
+let photoDraft = []; // [{id, name, rut, note, selected}]
+
+const QUICK_TAPS = [
+  { key: 'presente', label: 'Paciente presente' },
+  { key: 'familiar', label: 'Familiar presente' },
+  { key: 'medDisponibles', label: 'Medicamentos disponibles' },
+  { key: 'educacion', label: 'Educación realizada' },
+  { key: 'derivacion', label: 'Derivación requerida' },
+];
+
+const PROFESIONES = ['Enfermera/o','Médico/a','Nutricionista','Psicólogo/a','Asistente social','TENS','Dentista','Kinesiólogo/a','Matrona','Otro'];
+
+function newVisitDraft(){
+  return {
+    quickTaps: { presente:false, familiar:false, medDisponibles:false, educacion:false, derivacion:false },
+    derivacionProfesionales: [],
+    derivacionOtro: '',
+    vitals: { paSis:'', paDia:'', fc:'', temp:'', sat:'', glicemia:'', peso:'' },
+    transcript: '',
+    note: '',
+    stage: 'capture',
+    error: ''
+  };
+}
+
+// ---------- Storage (with fallbacks) ----------
+// Order: window.storage (Claude) -> localStorage (Vercel/browser) -> memory (session only)
+const memoryStore = {};
+let storageMode = 'memory';
+
+async function storeGet(key){
+  if(typeof window.storage !== 'undefined' && window.storage){
+    try{
+      const r = await window.storage.get(key);
+      if(r && typeof r.value !== 'undefined'){ storageMode = 'claude'; return r.value; }
+    } catch(e){ /* key may not exist or storage failing; try next */ }
+  }
+  try{
+    const v = localStorage.getItem(key);
+    storageMode = 'local';
+    return v;
+  } catch(e){}
+  return memoryStore[key] || null;
+}
+
+async function storeSet(key, val){
+  if(typeof window.storage !== 'undefined' && window.storage){
+    try{
+      const r = await window.storage.set(key, val);
+      if(r){ storageMode = 'claude'; return true; }
+    } catch(e){ /* fall through */ }
+  }
+  try{
+    localStorage.setItem(key, val);
+    storageMode = 'local';
+    return true;
+  } catch(e){}
+  memoryStore[key] = val;
+  storageMode = 'memory';
+  return true;
+}
+
+async function loadPatients(){
+  try{
+    const raw = await storeGet('patients');
+    patients = raw ? JSON.parse(raw) : [];
+  } catch(e){
+    patients = [];
+  }
+}
+async function savePatients(){
+  await storeSet('patients', JSON.stringify(patients));
+}
+
+// API endpoint: direct inside Claude, /api/claude proxy when deployed (e.g. Vercel)
+function apiEndpoint(){
+  return (typeof window.storage !== 'undefined' && window.storage)
+    ? 'https://api.anthropic.com/v1/messages'
+    : '/api/claude';
+}
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function daysAgo(iso){
+  if(!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(diff / 86400000));
+}
+function formatDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day:'2-digit', month:'short', year:'numeric' });
+}
+function formatDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric' }) + ' ' +
+         d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+}
+
+function getPatient(id){ return patients.find(p => p.id === id); }
+
+function displayName(p){
+  return [p.name, p.surnames].filter(Boolean).join(' ').trim() || 'Sin nombre';
+}
+function patientIdLine(p){
+  const parts = [];
+  if(p.rut) parts.push('RUT ' + p.rut);
+  if(p.age) parts.push(p.age + ' años');
+  return parts.join(' · ');
+}
+
+// ---------- Render root ----------
+function render(){
+  const app = document.getElementById('app');
+  if(loadingInit){
+    app.innerHTML = `<div class="empty"><div class="big">🩺</div>Cargando<span class="loading-dots"></span></div>`;
+    return;
+  }
+  let html = `<header class="top">
+    <div class="brand"><div class="dot"></div><div>
+      <h1>Ronda</h1>
+      <div class="sub">asistente de visitas domiciliarias</div>
+    </div></div>
+  </header>`;
+
+  if(view === 'home') html += renderHome();
+  else if(view === 'addPatient') html += renderPatientForm(null);
+  else if(view === 'editPatient') html += renderPatientForm(getPatient(currentPatientId));
+  else if(view === 'patientDetail') html += renderPatientDetail();
+  else if(view === 'visit') html += renderVisit();
+  else if(view === 'visitSummary') html += renderVisitSummary();
+  else if(view === 'photoImport') html += renderPhotoImport();
+
+  app.innerHTML = html;
+  attachHandlers();
+}
+
+// ---------- Home ----------
+function renderHome(){
+  if(patients.length === 0){
+    return `
+      <div class="empty">
+        <div class="big">📋</div>
+        Aún no tienes pacientes cargados.<br>Agrega el primero para empezar.
+      </div>
+      <div class="row-gap">
+        <button class="btn btn-primary" data-action="goAdd">+ Agregar paciente</button>
+        <button class="btn btn-ghost" data-action="goPhotoImport">📷 Importar de foto</button>
+      </div>
+    `;
+  }
+  const rows = patients.map(p => {
+    const pend = (p.pendingTasks || []).filter(t => !t.done).length;
+    const da = daysAgo(p.lastVisitDate);
+    const metaText = da === null ? 'Sin visitas registradas' : `Última visita: hace ${da} día${da===1?'':'s'}`;
+    const idLine = patientIdLine(p);
+    return `
+      <div class="patient-row" data-action="openPatient" data-id="${p.id}">
+        <div>
+          <div class="patient-name">${escapeHtml(displayName(p))}</div>
+          ${idLine ? `<div class="patient-meta">${escapeHtml(idLine)}</div>` : ''}
+          <div class="patient-meta">${escapeHtml(p.conditions || 'sin antecedentes registrados')}</div>
+          <div class="patient-meta">${metaText}</div>
+        </div>
+        ${pend > 0 ? `<span class="badge">${pend} pendiente${pend===1?'':'s'}</span>` : `<span class="badge badge-ok">al día</span>`}
+      </div>
+    `;
+  }).join('');
+  return `
+    <div>${rows}</div>
+    <div class="row-gap">
+      <button class="btn btn-primary" data-action="goAdd">+ Agregar</button>
+      <button class="btn btn-ghost" data-action="goPhotoImport">📷 Importar de foto</button>
+    </div>
+  `;
+}
+
+// ---------- Patient form (add / edit) ----------
+function renderPatientForm(p){
+  const isEdit = !!p;
+  const back = isEdit ? 'openPatientBack' : 'goHome';
+  return `
+    <div class="back-row"><span class="back-link" data-action="${back}">← Volver</span></div>
+    <div class="card">
+      <div class="section-title">${isEdit ? 'Editar datos' : 'Nuevo paciente'}</div>
+      <div class="field"><label>Nombres</label><input type="text" id="f-name" placeholder="Ej: Juan Andrés" value="${isEdit ? escapeHtml(p.name || '') : ''}"></div>
+      <div class="field"><label>Apellidos (ambos)</label><input type="text" id="f-surnames" placeholder="Ej: Pérez Soto" value="${isEdit ? escapeHtml(p.surnames || '') : ''}"></div>
+      <div class="field"><label>RUT</label><input type="text" id="f-rut" placeholder="Ej: 12.345.678-9" value="${isEdit ? escapeHtml(p.rut || '') : ''}"></div>
+      <div class="field-row">
+        <div class="field"><label>Edad</label><input type="number" id="f-age" placeholder="Ej: 72" value="${isEdit && p.age ? p.age : ''}"></div>
+        <div class="field"><label>Teléfono</label><input type="text" id="f-phone" placeholder="Opcional" value="${isEdit ? escapeHtml(p.phone || '') : ''}"></div>
+      </div>
+      <div class="field"><label>Dirección</label><input type="text" id="f-address" placeholder="Opcional" value="${isEdit ? escapeHtml(p.address || '') : ''}"></div>
+      <div class="field"><label>Antecedentes / condiciones</label><input type="text" id="f-conditions" placeholder="Ej: HTA, DM2" value="${isEdit ? escapeHtml(p.conditions || '') : ''}"></div>
+      <button class="btn btn-primary btn-block" data-action="${isEdit ? 'saveEditPatient' : 'savePatient'}">${isEdit ? 'Guardar cambios' : 'Guardar paciente'}</button>
+    </div>
+  `;
+}
+
+function readPatientForm(){
+  return {
+    name: valOf('f-name').trim(),
+    surnames: valOf('f-surnames').trim(),
+    rut: valOf('f-rut').trim(),
+    age: valOf('f-age').trim() ? parseInt(valOf('f-age').trim()) : null,
+    phone: valOf('f-phone').trim(),
+    address: valOf('f-address').trim(),
+    conditions: valOf('f-conditions').trim()
+  };
+}
+
+// ---------- Patient detail ----------
+function renderPatientDetail(){
+  const p = getPatient(currentPatientId);
+  if(!p) { view = 'home'; return renderHome(); }
+  const da = daysAgo(p.lastVisitDate);
+  const tasks = p.pendingTasks || [];
+  const taskRows = tasks.length === 0
+    ? `<div class="muted">Sin tareas pendientes.</div>`
+    : tasks.map(t => `
+        <div class="task-item ${t.done ? 'done' : ''}">
+          <input type="checkbox" data-action="toggleTask" data-id="${t.id}" ${t.done ? 'checked' : ''}>
+          <span>${escapeHtml(t.text)}</span>
+        </div>
+      `).join('');
+
+  const visits = (p.visits || []).slice().reverse();
+  const visitRows = visits.length === 0
+    ? `<div class="muted">Sin visitas registradas aún.</div>`
+    : `<div class="visit-log">${visits.map(v => `
+        <div class="entry">
+          <div class="date">${formatDate(v.date)}</div>
+          <div class="note">${escapeHtml(v.note)}</div>
+        </div>
+      `).join('')}</div>`;
+
+  const detailLines = [
+    patientIdLine(p),
+    p.phone ? 'Tel: ' + p.phone : '',
+    p.address ? p.address : ''
+  ].filter(Boolean);
+
+  return `
+    <div class="back-row"><span class="back-link" data-action="goHome">← Volver</span></div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div>
+          <div class="patient-name" style="font-size:20px;">${escapeHtml(displayName(p))}</div>
+          ${detailLines.map(l => `<div class="patient-meta">${escapeHtml(l)}</div>`).join('')}
+          <div class="patient-meta">${escapeHtml(p.conditions || 'sin antecedentes registrados')}</div>
+          <div class="patient-meta">${da === null ? 'Sin visitas previas' : `Última visita: hace ${da} día${da===1?'':'s'}`}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" data-action="goEdit">Editar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Pendientes</div>
+      ${taskRows}
+      <div class="add-task-row">
+        <input type="text" id="new-task-input" placeholder="Agregar pendiente...">
+        <button class="btn btn-ghost btn-sm" data-action="addTask">Agregar</button>
+      </div>
+    </div>
+
+    <button class="btn btn-accent btn-block" data-action="startVisit" style="margin-bottom:12px;">Iniciar visita</button>
+
+    <div class="card">
+      <div class="section-title">Historial</div>
+      ${visitRows}
+      ${visits.length > 0 ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px;" data-action="copyHistory">Copiar historial</button>` : ''}
+    </div>
+  `;
+}
+
+// ---------- Visit ----------
+function renderVisit(){
+  const p = getPatient(currentPatientId);
+  if(!p) { view = 'home'; return renderHome(); }
+  const d = visitDraft;
+
+  const chips = QUICK_TAPS.map(q => `
+    <div class="chip ${d.quickTaps[q.key] ? 'on' : ''}" data-action="toggleTap" data-key="${q.key}">${q.label}</div>
+  `).join('');
+
+  const derivacionBlock = d.quickTaps.derivacion ? `
+    <div class="sub-block">
+      <div class="sub-title">¿A qué profesional se deriva?</div>
+      <div class="chips">
+        ${PROFESIONES.map(prof => `
+          <div class="chip ${d.derivacionProfesionales.includes(prof) ? 'accent-on' : ''}" data-action="toggleProfession" data-prof="${escapeHtml(prof)}">${prof}</div>
+        `).join('')}
+      </div>
+      ${d.derivacionProfesionales.includes('Otro') ? `
+        <div class="field" style="margin-top:10px;">
+          <input type="text" id="derivacion-otro-input" placeholder="Especifica el profesional" value="${escapeHtml(d.derivacionOtro)}">
+        </div>
+      ` : ''}
+    </div>
+  ` : '';
+
+  if(d.stage === 'review'){
+    return `
+      <div class="back-row"><span class="back-link" data-action="cancelVisit">← Cancelar visita</span></div>
+      <div class="card">
+        <div class="section-title">Nota de evolución — ${escapeHtml(displayName(p))}</div>
+        <div class="muted" style="margin-bottom:10px;">Revisa y corrige antes de guardar. Nada se guarda automáticamente.</div>
+        <textarea id="note-review" style="min-height:220px;">${escapeHtml(d.note)}</textarea>
+      </div>
+      <button class="btn btn-ghost btn-block" data-action="copyPromptForClaude" style="margin-bottom:10px;">✨ Copiar prompt para mejorar en la app de Claude</button>
+      <div class="row-gap">
+        <button class="btn btn-ghost" data-action="backToCapture">← Editar registro</button>
+        <button class="btn btn-primary" data-action="confirmSave">Guardar visita</button>
+      </div>
+    `;
+  }
+
+  const micDisabled = d.stage === 'generating';
+  return `
+    <div class="back-row"><span class="back-link" data-action="cancelVisit">← Cancelar visita</span></div>
+    <div class="card">
+      <div class="section-title">Registro rápido — ${escapeHtml(displayName(p))}</div>
+      <div class="chips">${chips}</div>
+      ${derivacionBlock}
+    </div>
+
+    <div class="card">
+      <div class="section-title">Signos vitales</div>
+      <div class="vitals-grid">
+        <div class="full">
+          <label>PA (mmHg)</label>
+          <div class="pa-row">
+            <input type="number" id="v-paSis" placeholder="Sist." value="${d.vitals.paSis}">
+            <span>/</span>
+            <input type="number" id="v-paDia" placeholder="Diast." value="${d.vitals.paDia}">
+          </div>
+        </div>
+        <div><label>FC (lpm)</label><input type="number" id="v-fc" value="${d.vitals.fc}"></div>
+        <div><label>Temp (°C)</label><input type="number" step="0.1" id="v-temp" value="${d.vitals.temp}"></div>
+        <div><label>SatO2 (%)</label><input type="number" id="v-sat" value="${d.vitals.sat}"></div>
+        <div><label>Glicemia (mg/dL)</label><input type="number" id="v-glicemia" value="${d.vitals.glicemia}"></div>
+        <div class="full"><label>Peso (kg)</label><input type="number" step="0.1" id="v-peso" value="${d.vitals.peso}"></div>
+      </div>
+      <div id="vital-alerts"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Relato de la visita</div>
+      <div class="mic-wrap">
+        ${recognitionSupported() ? `<button class="mic-btn ${recognizing ? 'recording' : ''}" id="mic-btn" data-action="toggleMic">${recognizing ? '■' : '🎙'}</button>
+        <div class="mic-label" id="mic-label">${recognizing ? 'Grabando... toca para detener' : 'Toca para dictar, o escribe abajo'}</div>` : `<div class="mic-label">Escribe el relato de la visita abajo</div>`}
+        <textarea id="relato-input" placeholder="Dicta o escribe aquí: relato del paciente, hallazgos, lo que necesites registrar..." style="margin-top:14px; min-height:120px;">${escapeHtml(d.transcript)}</textarea>
+      </div>
+      ${d.stage === 'error' ? `<div class="error-box">${escapeHtml(d.error)}</div>` : ''}
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" data-action="generateNote">Generar nota clínica</button>
+    </div>
+  `;
+}
+
+function recognitionSupported(){
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+// ---------- Visit summary (post-save, SAC-ready) ----------
+function renderVisitSummary(){
+  if(!lastSavedVisit){ view = 'home'; return renderHome(); }
+  const text = buildSacSummary(lastSavedVisit);
+  return `
+    <div class="card">
+      <div class="section-title">Visita guardada ✓</div>
+      <div class="muted" style="margin-bottom:10px;">Resumen listo para copiar y pegar en SAC.</div>
+      <div class="sac-box" id="sac-box">${escapeHtml(text)}</div>
+    </div>
+    <button class="btn btn-primary btn-block" data-action="copySacSummary" style="margin-bottom:10px;">📋 Copiar resumen</button>
+    <div class="row-gap" style="margin-bottom:10px;">
+      <button class="btn btn-ghost" data-action="printSacSummary">🖨 Guardar como PDF</button>
+      <button class="btn btn-ghost" data-action="downloadSacSummary">⬇ Descargar .txt</button>
+    </div>
+    <button class="btn btn-ghost btn-block" data-action="backToPatientFromSummary">Volver a la ficha</button>
+  `;
+}
+
+function buildSacSummary(saved){
+  const { patient, visit } = saved;
+  const tapsText = QUICK_TAPS.filter(q => visit.quickTaps[q.key]).map(q => q.label).join(', ') || 'sin registro';
+  const v = visit.vitals;
+  const vitalsText = [
+    (v.paSis || v.paDia) ? `PA ${v.paSis || '-'}/${v.paDia || '-'} mmHg` : null,
+    v.fc ? `FC ${v.fc} lpm` : null,
+    v.temp ? `Temp ${v.temp} °C` : null,
+    v.sat ? `SatO2 ${v.sat}%` : null,
+    v.glicemia ? `Glicemia ${v.glicemia} mg/dL` : null,
+    v.peso ? `Peso ${v.peso} kg` : null,
+  ].filter(Boolean).join(', ') || 'sin registro';
+
+  const sacAlerts = evaluateVitals(v);
+  const alertLine = sacAlerts.length ? `Alertas: ${sacAlerts.map(a=>a.text).join(' ')}\n` : '';
+
+  let derivacionLine = '';
+  if(visit.quickTaps.derivacion){
+    const profs = [...(visit.derivacionProfesionales || [])];
+    const idx = profs.indexOf('Otro');
+    if(idx > -1 && visit.derivacionOtro){ profs[idx] = visit.derivacionOtro; }
+    derivacionLine = `Derivación: ${profs.length ? profs.join(', ') : 'sí (sin especificar profesional)'}\n`;
+  }
+
+  const idLines = [
+    `Paciente: ${patient.fullName}${patient.age ? ', ' + patient.age + ' años' : ''}`,
+    patient.rut ? `RUT: ${patient.rut}` : null,
+    patient.address ? `Dirección: ${patient.address}` : null,
+    patient.phone ? `Teléfono: ${patient.phone}` : null,
+    `Antecedentes: ${patient.conditions || 'no registrados'}`
+  ].filter(Boolean).join('\n');
+
+  return `VISITA DOMICILIARIA
+Fecha: ${formatDateTime(visit.date)}
+${idLines}
+
+Registro: ${tapsText}
+Signos vitales: ${vitalsText}
+${alertLine}${derivacionLine}
+--- Nota de evolución ---
+${visit.note}`;
+}
+
+// ---------- Photo import ----------
+function renderPhotoImport(){
+  if(photoStage === 'capture'){
+    return `
+      <div class="back-row"><span class="back-link" data-action="goHome">← Volver</span></div>
+      <div class="card">
+        <div class="section-title">Importar listado desde foto</div>
+        <div class="muted" style="margin-bottom:14px;">Toma una foto del listado o elige una desde tu galería. Se enviará a la IA solo para leer los datos — revisa siempre antes de confirmar.</div>
+        <input type="file" accept="image/*" capture="environment" id="photo-camera-input" style="display:none">
+        <input type="file" accept="image/*" id="photo-gallery-input" style="display:none">
+        <div class="row-gap">
+          <button class="btn btn-primary" data-action="triggerCamera">📷 Tomar foto</button>
+          <button class="btn btn-ghost" data-action="triggerGallery">🖼 Desde galería</button>
+        </div>
+      </div>
+    `;
+  }
+  if(photoStage === 'processing'){
+    return `
+      <div class="empty"><div class="big">🔎</div>Leyendo el listado<span class="loading-dots"></span></div>
+    `;
+  }
+  if(photoStage === 'error'){
+    return `
+      <div class="back-row"><span class="back-link" data-action="goHome">← Volver</span></div>
+      <div class="card">
+        <div class="section-title">No se pudo leer la foto</div>
+        <div class="error-box">${escapeHtml(photoError)}</div>
+      </div>
+      <div class="row-gap">
+        <button class="btn btn-ghost" data-action="goAdd">Agregar manualmente</button>
+        <button class="btn btn-primary" data-action="goPhotoImport">Intentar de nuevo</button>
+      </div>
+    `;
+  }
+  // review
+  if(photoDraft.length === 0){
+    return `
+      <div class="back-row"><span class="back-link" data-action="goHome">← Volver</span></div>
+      <div class="card"><div class="section-title">No se detectaron datos</div>
+      <div class="muted">Intenta con una foto más clara y enfocada, o agrega pacientes manualmente.</div></div>
+      <div class="row-gap">
+        <button class="btn btn-ghost" data-action="goAdd">Agregar manualmente</button>
+        <button class="btn btn-primary" data-action="goPhotoImport">Intentar de nuevo</button>
+      </div>
+    `;
+  }
+  const items = photoDraft.map(item => `
+    <div class="photo-item">
+      <div class="row1">
+        <input type="checkbox" data-action="togglePhotoItem" data-id="${item.id}" ${item.selected ? 'checked' : ''}>
+        <input type="text" data-role="pi-name" data-id="${item.id}" value="${escapeHtml(item.name)}" placeholder="Nombre y apellidos">
+      </div>
+      <div class="extra-row">
+        <input type="text" data-role="pi-rut" data-id="${item.id}" value="${escapeHtml(item.rut)}" placeholder="RUT">
+        <input type="text" data-role="pi-note" data-id="${item.id}" value="${escapeHtml(item.note)}" placeholder="Dirección / otros datos">
+      </div>
+    </div>
+  `).join('');
+  return `
+    <div class="back-row"><span class="back-link" data-action="goHome">← Volver</span></div>
+    <div class="card">
+      <div class="section-title">Revisa antes de agregar</div>
+      <div class="muted" style="margin-bottom:12px;">Desmarca lo que no corresponda y corrige nombres o RUT si es necesario. La IA puede equivocarse leyendo RUT — verifica los dígitos.</div>
+      ${items}
+    </div>
+    <button class="btn btn-primary btn-block" data-action="confirmPhotoImport">Agregar seleccionados</button>
+  `;
+}
+
+// ---------- Handlers ----------
+function attachHandlers(){
+  document.querySelectorAll('[data-action]').forEach(el => {
+    const action = el.getAttribute('data-action');
+    if(el.type === 'checkbox' || el.type === 'file') return;
+    el.addEventListener('click', (e) => handleAction(action, el, e));
+  });
+  document.querySelectorAll('input[data-action="toggleTask"]').forEach(el => {
+    el.addEventListener('change', () => handleAction('toggleTask', el));
+  });
+  document.querySelectorAll('input[data-action="togglePhotoItem"]').forEach(el => {
+    el.addEventListener('change', () => handleAction('togglePhotoItem', el));
+  });
+  const relato = document.getElementById('relato-input');
+  if(relato){
+    relato.addEventListener('input', () => { visitDraft.transcript = relato.value; });
+  }
+  ['v-paSis','v-paDia','v-fc','v-temp','v-sat','v-glicemia','v-peso'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.addEventListener('input', refreshVitalAlerts); }
+  });
+  refreshVitalAlerts();
+  const otroInput = document.getElementById('derivacion-otro-input');
+  if(otroInput){
+    otroInput.addEventListener('input', () => { visitDraft.derivacionOtro = otroInput.value; });
+  }
+  ['photo-camera-input','photo-gallery-input'].forEach(id => {
+    const fi = document.getElementById(id);
+    if(fi){
+      fi.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if(file) processPhotoFile(file);
+      });
+    }
+  });
+  [['pi-name','name'],['pi-rut','rut'],['pi-note','note']].forEach(([role, prop]) => {
+    document.querySelectorAll(`input[data-role="${role}"]`).forEach(el => {
+      el.addEventListener('input', () => {
+        const item = photoDraft.find(i => i.id === el.getAttribute('data-id'));
+        if(item) item[prop] = el.value;
+      });
+    });
+  });
+}
+
+async function handleAction(action, el){
+  if(action === 'goAdd'){ view = 'addPatient'; render(); }
+  else if(action === 'goHome'){ view = 'home'; currentPatientId = null; render(); }
+  else if(action === 'goEdit'){ view = 'editPatient'; render(); }
+  else if(action === 'openPatientBack'){ view = 'patientDetail'; render(); }
+  else if(action === 'openPatient'){ currentPatientId = el.getAttribute('data-id'); view = 'patientDetail'; render(); }
+  else if(action === 'savePatient'){ await savePatientForm(); }
+  else if(action === 'saveEditPatient'){ await saveEditPatientForm(); }
+  else if(action === 'toggleTask'){ await toggleTask(el.getAttribute('data-id'), el.checked); }
+  else if(action === 'addTask'){ await addTask(); }
+  else if(action === 'copyHistory'){ copyHistory(); }
+  else if(action === 'startVisit'){ visitDraft = newVisitDraft(); finalTranscript=''; view = 'visit'; render(); }
+  else if(action === 'cancelVisit'){ stopMicIfNeeded(); view = 'patientDetail'; render(); }
+  else if(action === 'toggleTap'){ toggleTap(el.getAttribute('data-key')); }
+  else if(action === 'toggleProfession'){ toggleProfession(el.getAttribute('data-prof')); }
+  else if(action === 'toggleMic'){ toggleMic(); }
+  else if(action === 'generateNote'){ await generateNote(); }
+  else if(action === 'copyPromptForClaude'){ copyPromptForClaude(); }
+  else if(action === 'backToCapture'){ visitDraft.stage = 'capture'; render(); }
+  else if(action === 'confirmSave'){ await confirmSaveVisit(); }
+  else if(action === 'backToPatientFromSummary'){ lastSavedVisit = null; view = 'patientDetail'; render(); }
+  else if(action === 'copySacSummary'){ copySacSummary(); }
+  else if(action === 'printSacSummary'){ printSacSummary(); }
+  else if(action === 'downloadSacSummary'){ downloadSacSummary(); }
+  else if(action === 'goPhotoImport'){ photoStage = 'capture'; photoError=''; photoDraft=[]; view = 'photoImport'; render(); }
+  else if(action === 'triggerCamera'){ const fi = document.getElementById('photo-camera-input'); if(fi) fi.click(); }
+  else if(action === 'triggerGallery'){ const fi = document.getElementById('photo-gallery-input'); if(fi) fi.click(); }
+  else if(action === 'togglePhotoItem'){ const item = photoDraft.find(i => i.id === el.getAttribute('data-id')); if(item) item.selected = el.checked; }
+  else if(action === 'confirmPhotoImport'){ await confirmPhotoImport(); }
+}
+
+async function savePatientForm(){
+  const data = readPatientForm();
+  if(!data.name && !data.surnames){ alert('Ingresa al menos el nombre.'); return; }
+  patients.push({
+    id: uid(), ...data,
+    lastVisitDate: null, pendingTasks: [], visits: []
+  });
+  await savePatients();
+  view = 'home';
+  render();
+}
+
+async function saveEditPatientForm(){
+  const p = getPatient(currentPatientId);
+  if(!p) return;
+  const data = readPatientForm();
+  if(!data.name && !data.surnames){ alert('Ingresa al menos el nombre.'); return; }
+  Object.assign(p, data);
+  await savePatients();
+  view = 'patientDetail';
+  render();
+}
+
+async function toggleTask(id, checked){
+  const p = getPatient(currentPatientId);
+  const t = (p.pendingTasks || []).find(t => t.id === id);
+  if(t){ t.done = checked; await savePatients(); }
+}
+
+async function addTask(){
+  const input = document.getElementById('new-task-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const p = getPatient(currentPatientId);
+  if(!p.pendingTasks) p.pendingTasks = [];
+  p.pendingTasks.push({ id: uid(), text, done: false });
+  await savePatients();
+  render();
+}
+
+function copyHistory(){
+  const p = getPatient(currentPatientId);
+  const text = (p.visits || []).slice().reverse().map(v => `${formatDate(v.date)}\n${v.note}`).join('\n\n---\n\n');
+  copyToClipboard(text);
+}
+
+function copySacSummary(){
+  copyToClipboard(buildSacSummary(lastSavedVisit));
+}
+
+function printSacSummary(){
+  const sheet = document.getElementById('print-sheet');
+  sheet.textContent = buildSacSummary(lastSavedVisit);
+  window.print();
+}
+
+function downloadSacSummary(){
+  const text = buildSacSummary(lastSavedVisit);
+  const patientLabel = (lastSavedVisit.patient.fullName || 'paciente').replace(/[^a-zA-ZáéíóúñÁÉÍÓÚÑ0-9 ]/g,'').trim().replace(/\s+/g,'_');
+  const dateLabel = new Date(lastSavedVisit.visit.date).toISOString().slice(0,10);
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `visita_${patientLabel}_${dateLabel}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => alert('Copiado al portapapeles.')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); alert('Copiado al portapapeles.'); }
+  catch(e){ alert('No se pudo copiar automáticamente. Selecciona el texto manualmente.'); }
+  document.body.removeChild(ta);
+}
+
+function toggleTap(key){
+  visitDraft.quickTaps[key] = !visitDraft.quickTaps[key];
+  if(key === 'derivacion' && !visitDraft.quickTaps[key]){
+    visitDraft.derivacionProfesionales = [];
+    visitDraft.derivacionOtro = '';
+  }
+  render();
+}
+
+function toggleProfession(prof){
+  const list = visitDraft.derivacionProfesionales;
+  const idx = list.indexOf(prof);
+  if(idx > -1) list.splice(idx, 1);
+  else list.push(prof);
+  if(prof === 'Otro' && idx > -1){ visitDraft.derivacionOtro = ''; }
+  render();
+}
+
+// ---------- Speech recognition ----------
+function toggleMic(){
+  if(!recognitionSupported()){ return; }
+  if(recognizing){ stopMicIfNeeded(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-CL';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  finalTranscript = visitDraft.transcript || '';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const t = event.results[i][0].transcript;
+      if(event.results[i].isFinal) finalTranscript += (finalTranscript ? ' ' : '') + t.trim();
+      else interim += t;
+    }
+    visitDraft.transcript = (finalTranscript + ' ' + interim).trim();
+    updateTranscriptBox();
+  };
+  recognition.onerror = () => { stopMicIfNeeded(); };
+  recognition.onend = () => {
+    recognizing = false;
+    updateMicUI();
+  };
+  recognition.start();
+  recognizing = true;
+  updateMicUI();
+}
+
+function stopMicIfNeeded(){
+  recognizing = false;
+  if(recognition){
+    try{ recognition.onresult = null; recognition.onend = null; recognition.onerror = null; }catch(e){}
+    try{ recognition.abort(); }catch(e){ try{ recognition.stop(); }catch(e2){} }
+    recognition = null;
+  }
+  // keep only confirmed (final) text, drop interim fragment
+  if(visitDraft){ visitDraft.transcript = finalTranscript.trim(); }
+  updateMicUI();
+  updateTranscriptBox();
+}
+
+function updateTranscriptBox(){
+  const ta = document.getElementById('relato-input');
+  if(ta){ ta.value = visitDraft.transcript || ''; }
+}
+function updateMicUI(){
+  const btn = document.getElementById('mic-btn');
+  const label = document.getElementById('mic-label');
+  if(btn){ btn.classList.toggle('recording', recognizing); btn.textContent = recognizing ? '■' : '🎙'; }
+  if(label){ label.textContent = recognizing ? 'Grabando... toca para detener' : 'Toca para dictar el resumen'; }
+}
+
+// ---------- AI note generation ----------
+async function generateNote(){
+  const p = getPatient(currentPatientId);
+  visitDraft.vitals = {
+    paSis: valOf('v-paSis'), paDia: valOf('v-paDia'), fc: valOf('v-fc'),
+    temp: valOf('v-temp'), sat: valOf('v-sat'), glicemia: valOf('v-glicemia'), peso: valOf('v-peso')
+  };
+  const relato = document.getElementById('relato-input');
+  if(relato) visitDraft.transcript = relato.value;
+
+  if(!visitDraft.transcript || visitDraft.transcript.trim().length < 3){
+    visitDraft.stage = 'error';
+    visitDraft.error = 'Agrega un dictado o descripción antes de generar la nota.';
+    render();
+    return;
+  }
+
+  // Nota generada localmente (sin API): funciona offline y sin créditos.
+  visitDraft.note = buildLocalNote(p, visitDraft);
+  visitDraft.stage = 'review';
+  render();
+}
+
+function vitalsLine(v){
+  return [
+    (v.paSis || v.paDia) ? `PA ${v.paSis || '-'}/${v.paDia || '-'} mmHg` : null,
+    v.fc ? `FC ${v.fc} lpm` : null,
+    v.temp ? `Temp ${v.temp} °C` : null,
+    v.sat ? `SatO2 ${v.sat}%` : null,
+    v.glicemia ? `Glicemia ${v.glicemia} mg/dL` : null,
+    v.peso ? `Peso ${v.peso} kg` : null,
+  ].filter(Boolean).join(', ');
+}
+
+function derivacionResumen(draft){
+  if(!draft.quickTaps.derivacion) return '';
+  const profs = [...draft.derivacionProfesionales];
+  const idx = profs.indexOf('Otro');
+  if(idx > -1 && draft.derivacionOtro){ profs[idx] = draft.derivacionOtro; }
+  return profs.length ? profs.join(', ') : 'profesional por definir';
+}
+
+function buildLocalNote(p, draft){
+  const vitalsBase = vitalsLine(draft.vitals) || 'Sin registro.';
+  const vAlerts = evaluateVitals(draft.vitals);
+  const vitalsText = vAlerts.length ? (vitalsBase + '\n⚠ Alertas: ' + vAlerts.map(a=>a.text).join(' ')) : vitalsBase;
+
+  const contexto = [];
+  if(draft.quickTaps.presente) contexto.push('paciente presente');
+  if(draft.quickTaps.familiar) contexto.push('familiar presente');
+  const contextoText = contexto.length
+    ? ('Visita domiciliaria, ' + contexto.join(', ') + '.')
+    : 'Visita domiciliaria.';
+
+  const acciones = [];
+  if(draft.quickTaps.educacion) acciones.push('Se realizó educación al paciente/familia.');
+  if(draft.quickTaps.medDisponibles) acciones.push('Se verificó disponibilidad de medicamentos.');
+  const accionesText = acciones.length ? acciones.join(' ') : 'Ver relato.';
+
+  const deriv = derivacionResumen(draft);
+  const pendientes = deriv ? ('Derivación a: ' + deriv + '.') : '—';
+
+  const relato = draft.transcript ? draft.transcript.trim() : 'Sin relato dictado.';
+
+  return `Motivo/contexto de la visita:
+${contextoText}
+
+Hallazgos y estado del paciente:
+${relato}
+
+Signos vitales:
+${vitalsText}
+
+Acciones realizadas:
+${accionesText}
+
+Pendientes / seguimiento:
+${pendientes}`;
+}
+
+function buildClaudePrompt(p, draft){
+  const tapsText = QUICK_TAPS.filter(q => draft.quickTaps[q.key]).map(q => q.label).join(', ') || 'ninguno marcado';
+  const vitalsText = vitalsLine(draft.vitals) || 'sin registro';
+  const deriv = derivacionResumen(draft);
+  const derivacionText = deriv ? `Derivación indicada a: ${deriv}.` : '';
+  return `Eres un asistente que ayuda a un profesional de Atención Primaria a estructurar una nota de evolución tras una visita domiciliaria. NO diagnostiques ni prescribas. Solo organiza la información en una nota clínica clara y profesional, en español de Chile.
+
+Paciente: ${displayName(p)}, ${p.age || 'edad no registrada'} años. Antecedentes: ${p.conditions || 'no registrados'}.
+Ítems marcados: ${tapsText}.
+Signos vitales: ${vitalsText}.
+${derivacionText}
+Relato dictado por el profesional: "${draft.transcript || ''}"
+
+Responde SOLO con la nota clínica en texto plano, con estas secciones:
+Motivo/contexto de la visita:
+Hallazgos y estado del paciente:
+Signos vitales:
+Acciones realizadas:
+Pendientes / seguimiento:`;
+}
+
+function copyPromptForClaude(){
+  const p = getPatient(currentPatientId);
+  const prompt = buildClaudePrompt(p, visitDraft);
+  copyToClipboard(prompt);
+  alert('Prompt copiado. Ábrelo en la app de Claude (claude.ai), pégalo, copia la respuesta y pégala aquí en el cuadro de la nota.');
+}
+
+
+function evaluateVitals(v){
+  const out = [];
+  const n = (x) => { const f = parseFloat(x); return isNaN(f) ? null : f; };
+  const sis = n(v.paSis), dia = n(v.paDia), fc = n(v.fc), temp = n(v.temp), sat = n(v.sat), gli = n(v.glicemia);
+  if(sis !== null || dia !== null){
+    if((sis!==null && sis>=180) || (dia!==null && dia>=110)) out.push({sev:'alta', text:'Presión arterial muy elevada (≥180/110). Reevaluar y considerar conducta según protocolo.'});
+    else if((sis!==null && sis>=140) || (dia!==null && dia>=90)) out.push({sev:'alta', text:'Presión arterial elevada (≥140/90).'});
+    else if(sis!==null && sis<90) out.push({sev:'media', text:'Presión arterial baja (sistólica <90).'});
+  }
+  if(gli !== null){
+    if(gli>=300) out.push({sev:'alta', text:'Glicemia muy elevada (≥300 mg/dL).'});
+    else if(gli>=200) out.push({sev:'alta', text:'Glicemia elevada (≥200 mg/dL).'});
+    else if(gli<70) out.push({sev:'alta', text:'Glicemia baja / hipoglicemia (<70 mg/dL).'});
+  }
+  if(sat !== null){
+    if(sat<90) out.push({sev:'alta', text:'Saturación de oxígeno baja (<90%).'});
+    else if(sat<94) out.push({sev:'media', text:'Saturación en el límite (90–93%).'});
+  }
+  if(fc !== null){
+    if(fc>120) out.push({sev:'media', text:'Frecuencia cardíaca elevada (>120 lpm).'});
+    else if(fc<50) out.push({sev:'media', text:'Frecuencia cardíaca baja (<50 lpm).'});
+  }
+  if(temp !== null){
+    if(temp>=38) out.push({sev:'media', text:'Fiebre (≥38 °C).'});
+    else if(temp<35) out.push({sev:'alta', text:'Temperatura baja / hipotermia (<35 °C).'});
+  }
+  return out;
+}
+
+function currentVitalsFromInputs(){
+  return {
+    paSis: valOf('v-paSis'), paDia: valOf('v-paDia'), fc: valOf('v-fc'),
+    temp: valOf('v-temp'), sat: valOf('v-sat'), glicemia: valOf('v-glicemia'), peso: valOf('v-peso')
+  };
+}
+
+function refreshVitalAlerts(){
+  const box = document.getElementById('vital-alerts');
+  if(!box) return;
+  const alerts = evaluateVitals(currentVitalsFromInputs());
+  box.innerHTML = alerts.length === 0 ? '' : alerts.map(a =>
+    `<div class="alert-item ${a.sev==='alta'?'alert-high':'alert-mid'}"><span class="alert-icon">${a.sev==='alta'?'⚠️':'•'}</span><span>${escapeHtml(a.text)}</span></div>`
+  ).join('');
+}
+
+function valOf(id){
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+async function confirmSaveVisit(){
+  const p = getPatient(currentPatientId);
+  const noteEl = document.getElementById('note-review');
+  const finalNote = noteEl ? noteEl.value : visitDraft.note;
+
+  const visitRecord = {
+    date: new Date().toISOString(),
+    quickTaps: { ...visitDraft.quickTaps },
+    derivacionProfesionales: [...visitDraft.derivacionProfesionales],
+    derivacionOtro: visitDraft.derivacionOtro,
+    vitals: { ...visitDraft.vitals },
+    transcript: visitDraft.transcript,
+    note: finalNote
+  };
+
+  if(!p.visits) p.visits = [];
+  p.visits.push(visitRecord);
+  p.lastVisitDate = visitRecord.date;
+
+  if(visitDraft.quickTaps.derivacion){
+    if(!p.pendingTasks) p.pendingTasks = [];
+    const profs = [...visitDraft.derivacionProfesionales];
+    const idx = profs.indexOf('Otro');
+    if(idx > -1 && visitDraft.derivacionOtro){ profs[idx] = visitDraft.derivacionOtro; }
+    if(profs.length === 0){
+      p.pendingTasks.push({ id: uid(), text: 'Seguimiento de derivación', done: false });
+    } else {
+      profs.forEach(prof => {
+        p.pendingTasks.push({ id: uid(), text: `Seguimiento derivación a ${prof}`, done: false });
+      });
+    }
+  }
+
+  await savePatients();
+
+  lastSavedVisit = {
+    patient: {
+      fullName: displayName(p), rut: p.rut || '', age: p.age,
+      address: p.address || '', phone: p.phone || '', conditions: p.conditions || ''
+    },
+    visit: visitRecord
+  };
+  visitDraft = null;
+  view = 'visitSummary';
+  render();
+}
+
+// ---------- Photo import: resize + extract via Claude vision ----------
+function resizeImageFile(file, maxDim, quality){
+  maxDim = maxDim || 1600;
+  quality = quality || 0.85;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function processPhotoFile(file){
+  photoStage = 'processing';
+  view = 'photoImport';
+  render();
+  try{
+    const base64 = await resizeImageFile(file);
+    const response = await fetch(apiEndpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1500,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+            { type: "text", text: "Esta imagen muestra un listado de pacientes a visitar en atención primaria (Chile). Extrae los datos de cada paciente visible. Responde SOLO con un array JSON, sin texto adicional ni marcado markdown, con este formato exacto: [{\"name\": \"nombre completo con ambos apellidos si son visibles\", \"rut\": \"RUT si es visible con formato tal como aparece, cadena vacía si no\", \"note\": \"otros datos visibles como dirección, edad o sector, cadena vacía si no hay\"}]. Si un dato no es completamente legible, incluye lo que puedas leer. No inventes datos que no estén en la imagen." }
+          ]
+        }]
+      })
+    });
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if(!textBlock){ throw new Error('Respuesta vacía'); }
+    let raw = textBlock.text.trim();
+    raw = raw.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed)) throw new Error('Formato inesperado');
+    photoDraft = parsed
+      .filter(item => item && item.name && String(item.name).trim().length > 0)
+      .map(item => ({
+        id: uid(),
+        name: String(item.name).trim(),
+        rut: item.rut ? String(item.rut).trim() : '',
+        note: item.note ? String(item.note).trim() : '',
+        selected: true
+      }));
+    photoStage = 'review';
+    render();
+  } catch(e){
+    photoStage = 'error';
+    photoError = 'No se pudo leer la lista desde la foto. Prueba con más luz o una toma más enfocada.';
+    render();
+  }
+}
+
+async function confirmPhotoImport(){
+  const selected = photoDraft.filter(i => i.selected && i.name.trim().length > 0);
+  selected.forEach(item => {
+    // split full name: first token(s) as nombres, last two as apellidos when possible
+    const parts = item.name.trim().split(/\s+/);
+    let nombres = item.name.trim(), apellidos = '';
+    if(parts.length >= 3){
+      apellidos = parts.slice(-2).join(' ');
+      nombres = parts.slice(0, -2).join(' ');
+    } else if(parts.length === 2){
+      nombres = parts[0]; apellidos = parts[1];
+    }
+    patients.push({
+      id: uid(), name: nombres, surnames: apellidos, rut: item.rut || '',
+      age: null, phone: '', address: item.note || '', conditions: '',
+      lastVisitDate: null, pendingTasks: [], visits: []
+    });
+  });
+  await savePatients();
+  photoDraft = [];
+  photoStage = 'capture';
+  view = 'home';
+  render();
+}
+
+function escapeHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- Init ----------
+(async function init(){
+  await loadPatients();
+  // probe storage so the user knows if data will persist
+  await storeSet('__probe', '1');
+  loadingInit = false;
+  render();
+  if(storageMode === 'memory'){
+    setTimeout(() => alert('Aviso: el guardado permanente no está disponible en este entorno. Tus datos durarán solo esta sesión. Usa "Copiar" o "Descargar" para respaldar cada visita.'), 400);
+  }
+})();
+</script>
+</body>
+</html>
