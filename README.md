@@ -33,10 +33,11 @@ La filosofía es explícita: **la IA nunca reemplaza el criterio clínico.** Org
 Este es un **prototipo**, y la privacidad de datos de salud se trató como decisión de diseño consciente, no como una omisión:
 
 - Los datos se guardan **localmente** en el navegador (`localStorage`), sin servidor central ni base de datos compartida. Cada dispositivo mantiene su propia información, aislada.
+
 - Compartir el enlace de la app **no expone** los datos cargados: cada usuario parte con la app vacía en su propio navegador.
 - **Una versión productiva o de uso compartido requeriría**: autenticación por usuario, almacenamiento seguro con control de acceso, trazabilidad de auditoría, y cumplimiento de la **Ley 21.719** (protección de datos personales) y la **Ley 20.584** (derechos y deberes del paciente) en Chile.
 
-En resumen: apto para prueba personal; no apto para uso con datos reales de pacientes de terceros hasta resolver el marco de cumplimiento correspondiente.
+En resumen: apto para prueba personal; no apto para uso con datos reales de pacientes de terceros 
 
 ---
 
@@ -57,3 +58,12 @@ Prototipo funcional en fase de prueba en terreno. Próximos pasos considerados: 
 ---
 
 *Proyecto desarrollado como exploración de IA aplicada a un problema real de la Atención Primaria de Salud.*
+
+
+
+
+<img width="571" height="914" alt="Captura de pantalla 2026-07-20 173316" src="https://github.com/user-attachments/assets/9a4ff991-18d5-438e-9b79-6f2523798b18" />
+<img width="621" height="916" alt="Captura de pantalla 2026-07-20 173229" src="https://github.com/user-attachments/assets/171a94a1-a03c-4ea1-bd3e-2340aad2cf52" />
+<img width="646" height="602" alt="Captura de pantalla 2026-07-20 173211" src="https://github.com/user-attachments/assets/da91996b-27b0-4386-827a-0cd8b4a2dfcb" />
+<img width="671" height="771" alt="Captura de pantalla 2026-07-20 173156" src="https://github.com/user-attachments/assets/49c04492-76f3-4836-9a37-872498d65680" />
+
